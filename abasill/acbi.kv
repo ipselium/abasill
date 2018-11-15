@@ -1,0 +1,493 @@
+#:import SlideTransition kivy.uix.screenmanager.SlideTransition
+#:import SwapTransition kivy.uix.screenmanager.SwapTransition
+#:import WipeTransition kivy.uix.screenmanager.WipeTransition
+#:import AnimLabel kivy.garden.animlabel.AnimLabel
+#:import Factory kivy.factory.Factory
+#:import np numpy
+
+Screens:
+    Home:
+    MicrophonePanel:
+    SinePanel:
+    MediaPanel:
+    InterferencePanel:
+    SeriesPanel:
+
+<MySlider@Slider>:
+    orientation: "horizontal"
+    cursor_size: (20, 20)
+
+<Text@Label>:
+    markup: True
+    font_name: app.txt_font
+    font_size: app.txt_fsize
+
+<Button@Button>:
+    bold: True
+    font_name: app.btn_font
+    font_size: app.btn_fsize
+    background_color: app.btn_bg
+    border: (16, 16, 16, 16)
+
+<Title@Label>:
+    font_name: app.title_font
+    font_size: app.title_fsize
+    canvas.before:
+        Color:
+            rgba: app.title_bcolor
+        Rectangle:
+            pos: self.pos
+            size: self.size
+
+<AnimTitle@AnimLabel>:
+    transform: 'pop_in'
+    letter_duration: 2
+    letter_offset: .1
+    font_name: app.title_font
+    font_size: app.title_fsize
+    color: [0, 0, 0, 0]
+    on_touch_down: self.animate()
+    canvas.before:
+        Color:
+            rgba: app.title_bcolor
+        Rectangle:
+            pos: self.pos
+            size: self.size
+
+<FloatInput@FloatInput>:
+    multiline: False
+    size_hint_x: None
+    size_hint_y: None
+    width: 50
+    height: 30
+
+
+<MicrophonePanel>:
+    name: "micro"
+    canvas.before:
+        Rectangle:
+            pos: self.pos
+            size: self.size
+            source: 'data/micro.jpg'
+
+    BoxLayout:
+        orientation: "vertical"
+        Title:
+            size_hint: [1, .1]
+            text: "Microphone Panel"
+        BoxLayout:
+            size_hint: [1, .70]
+            padding: [10, 10]
+            Graph:
+                id: graph
+                xlabel: ""
+                ylabel: ""
+                x_ticks_major: 25
+                y_ticks_major: 100
+                x_grid: True
+                y_grid: True
+                ymin: 0
+                ymax: 500
+        GridLayout:
+            cols:2
+            size_hint: [1, .1]
+            Button:
+                text: "Start"
+                on_release: root.start()
+            Button:
+                text: "Stop"
+                on_release: root.stop()
+        Button:
+            size_hint: [1, .1]
+            text: "Home"
+            on_press:
+                root.manager.transition = SwapTransition()
+                root.manager.transition.direction = 'up'
+                root.manager.transition.duration = app.transition_time
+                root.manager.current = 'home'
+
+<SinePanel>:
+    name: "sine"
+    canvas.before:
+        Rectangle:
+            pos: self.pos
+            size: self.size
+            source: 'data/home_r.jpg'
+
+    BoxLayout:
+        orientation: "vertical"
+        Title:
+            size_hint: [1, .1]
+            text: "Operations with sine functions"
+        BoxLayout:
+            size_hint: [1, .8]
+            padding: [10, 10]
+            Graph:
+                id: graph
+                xlabel: "Time"
+                ylabel: "Amplitude"
+                x_ticks_minor: 5
+                x_ticks_major: 25
+                y_ticks_major: 0.25
+                ymin: -2
+                ymax: 2
+#                x_min:0
+#                x_max:100
+                x_grid: True
+                y_grid: True
+            BoxLayout:
+                padding: [10, 0]
+                orientation: "vertical"
+                Text:
+                    text: "Sine 1"
+                    size_hint: [1, .1]
+                    padding: [10, 5]
+                    color: [1, .65, 0, 1]
+                GridLayout:
+                    cols: 3
+                    size_hint: [1, .25]
+                    row_default_height: 40
+                    row_force_default: True
+                    Text:
+                        text: "Freq."
+                    MySlider:
+                        range: (1, 100)
+                        step: 1
+                        value: root.f1
+                        on_value: root.f1 = self.value
+                    Text:
+                        text: str(root.f1)
+                    Text:
+                        text: "Amp."
+                    MySlider:
+                        range: (0, 1)
+                        step: 0.1
+                        value: root.A1
+                        on_value: root.A1 = self.value
+                    Text:
+                        text: str(round(root.A1, 1))
+                    Text:
+                        text: "Phase"
+                    MySlider:
+                        range: (0, 2*np.pi)
+                        step: 0.01
+                        value: root.t1
+                        on_value: root.t1 = self.value
+                    Text:
+                        text: str(round(root.t1, 2))
+
+
+                Spinner:
+                    size_hint:[1, .1]
+                    id: operator
+                    values: ['+', '-', '*']
+                    text: '+'
+                    size_hint_y: None
+                    height: 40
+                    sync_height: True
+
+                Text:
+                    text: "Sine 2"
+                    size_hint: [1, .1]
+                    padding: [10, 5]
+                    color: [1, 1, 0, 1]
+                GridLayout:
+                    cols: 3
+                    size_hint: [1, .25]
+                    row_default_height: 40
+                    row_force_default: True
+                    Text:
+                        text: "Freq."
+                    MySlider:
+                        size_hint_x: .8
+                        range: (1, 100)
+                        step: 1
+                        value: root.f2
+                        on_value: root.f2 = self.value
+                    Text:
+                        text: str(root.f2)
+                    Text:
+                        text: "Amp."
+                    MySlider:
+                        range: (0, 1)
+                        step: 0.01
+                        value: root.A2
+                        on_value: root.A2 = self.value
+                    Text:
+                        text: str(round(root.A2, 1))
+                    Text:
+                        text: "Phase"
+                    MySlider:
+                        range: (0, 2*np.pi)
+                        step: 0.01
+                        value: root.t2
+                        on_value: root.t2 = self.value
+                    Text:
+                        text: str(round(root.t2, 2))
+
+
+        Button:
+            size_hint: [1, .1]
+            text: "Home"
+            on_press:
+                root.manager.transition = SlideTransition()
+                root.manager.transition.direction = 'left'
+                root.manager.transition.duration = app.transition_time
+                root.manager.current = 'home'
+
+<MediaPanel>:
+    name: "media"
+    BoxLayout:
+        orientation: "vertical"
+        Title:
+            size_hint: [1, .1]
+            text: "Two Media"
+        BoxLayout:
+            size_hint: [1, .45]
+            padding: [10, 10]
+            Graph:
+                id: graph
+                xlabel: "Space"
+                ylabel: "Amplitude"
+                x_ticks_major: 1
+                y_ticks_major: 1
+                ymin: -2
+                ymax: 2
+                xmin: -2
+                xmax: 2
+                y_grid_label: True
+                x_grid_label: True
+                x_grid: True
+                y_grid: True
+        GridLayout:
+            size_hint: [1., .15]
+            padding: [0, 0, 50, 0]
+            cols: 6
+            row_default_height: 40
+            row_force_default: True
+            Text:
+                text: "p[sub]1[/sub]"
+            MySlider:
+                range: (root.rho_min, root.rho_max)
+                step: 0.1
+                sensivity: 1
+                value: root.rho1
+                on_value: root.rho1 = self.value
+            FloatInput:
+                text: str(round(root.rho1, 1))
+                on_text_validate: root.rho1 = round(float(self.text)) if root.rho_min <= float(self.text) <= root.rho_max else root.rho_min
+
+            Text:
+                text: "p[sub]2[/sub]"
+            MySlider:
+                range: (root.rho_min, root.rho_max)
+                step: 0.1
+                value: root.rho2
+                on_value: root.rho2 = self.value
+            FloatInput:
+                text: str(round(root.rho2, 1))
+                on_text_validate: root.rho2 = round(float(self.text)) if root.rho_min <= float(self.text) <= root.rho_max else root.rho_min
+
+            Text:
+                text: "c[sub]1[/sub]"
+            MySlider:
+                range: (root.c_min, root.c_max)
+                step: 1
+                value: root.c1
+                on_value: root.c1 = self.value
+            FloatInput:
+                text: str(round(root.c1, 1))
+                on_text_validate: root.c1 = round(float(self.text)) if root.c_min <= float(self.text) <= root.c_max else root.c_min
+
+            Text:
+                text: "c[sub]2[/sub]"
+            MySlider:
+                range: (root.c_min, root.c_max)
+                step: 1
+                value: root.c2
+                on_value: root.c2 = self.value
+            FloatInput:
+                text: str(round(root.c2, 1))
+                on_text_validate: root.c2 = round(float(self.text)) if root.c_min <= float(self.text) <= root.c_max else root.c_min
+
+        BoxLayout:
+            size_hint: [1, .15]
+            Text:
+                text: 'R[sub]p[/sub] => ' + str(round(root.Rp, 2))
+                color: [1, 0, 0, 1]
+            Text:
+                text: 'T[sub]p[/sub] => ' + str(round(root.Tp, 2))
+                color: [1, 0, 0, 1]
+
+
+        Button:
+            size_hint: [1, .1]
+            text: "Home"
+            on_press:
+                root.manager.transition = SlideTransition()
+                root.manager.transition.direction = 'down'
+                root.manager.transition.duration = app.transition_time
+                root.manager.current = 'home'
+
+
+<InterferencePanel>:
+    name: "interference"
+    canvas.before:
+        Rectangle:
+            pos: self.pos
+            size: self.size
+            source: 'data/home_r.jpg'
+
+    BoxLayout:
+        orientation: "vertical"
+        Title:
+            size_hint: [1, .1]
+            text: "Interferences"
+        BoxLayout:
+            size_hint: [1, .80]
+            padding: [10, 10]
+            Graph:
+                id: graph
+                xlabel: "Space"
+                ylabel: "Amplitude"
+                x_ticks_major: 0.25
+                y_ticks_major: 1
+                ymin: -2
+                ymax: 2
+                xmin: 0
+                xmax: 1
+                y_grid_label: True
+                x_grid_label: True
+                x_grid: True
+                y_grid: True
+            BoxLayout:
+                orientation: "vertical"
+                Text:
+                    text: 'p(x, t) = Ae[sup]jwt[/sup] + Be[sup]-jwt[/sup]'
+                GridLayout:
+                    cols: 2
+                    padding: [50, 10]
+                    row_default_height: 40
+                    row_force_default: True
+                    Text:
+                        size_hint_x: None
+                        width: 50
+                        text: "A"
+                    MySlider:
+                        range: (0, 1)
+                        step: 0.01
+                        value: root.A
+                        on_value: root.A = self.value
+                    Text:
+                        size_hint_x: None
+                        width: 50
+                        text: "B"
+                    MySlider:
+                        range: (0, 1)
+                        step: 0.01
+                        value: root.B
+                        on_value: root.B = self.value
+        Button:
+            size_hint: [1, 0.1]
+            text: "Home"
+            on_press:
+                root.manager.transition = SlideTransition()
+                root.manager.transition.direction = 'right'
+                root.manager.transition.duration = app.transition_time
+                root.manager.current = 'home'
+
+<SeriesPanel>:
+    name: "series"
+    canvas.before:
+        Rectangle:
+            pos: self.pos
+            size: self.size
+            source: 'data/home_r.jpg'
+    BoxLayout:
+        Button:
+            size_hint: [1, 0.1]
+            text: "Home"
+            on_press:
+                root.manager.transition = SlideTransition()
+                root.manager.transition.direction = 'up'
+                root.manager.transition.duration = app.transition_time
+                root.manager.current = 'home'
+
+
+<Home>:
+    name: "home"
+    on_enter:
+        tlabel.animate()
+        blabel.animate()
+    canvas.before:
+        Rectangle:
+            pos: self.pos
+            size: self.size
+            source: 'data/home.jpg'
+
+    BoxLayout:
+        orientation: "vertical"
+        AnimTitle:
+            id: tlabel
+            target_text: 'Acoustic Basics'
+            size_hint: [1, .1]
+        GridLayout:
+            size_hint: [0.6, 0.8]
+            row_default_height: 80
+            row_force_default: True
+            pos_hint: {'center_x':.5, 'center_y':.5}
+            padding: [80, 80, 50, 50]
+            cols: 3
+            # 1st line
+            Label:
+            Button:
+                text: "Series"
+                on_press:
+                    root.manager.transition = SlideTransition()
+                    root.manager.transition.direction = 'down'
+                    root.manager.transition.duration = app.transition_time
+                    root.manager.current = 'series'
+            Button:
+                text: "Micro"
+                on_press:
+                    root.manager.transition = SwapTransition()
+                    root.manager.transition.direction = 'down'
+                    root.manager.transition.duration = app.transition_time
+                    root.manager.current = 'micro'
+
+            # 2nd line
+            Button:
+                text: "Sine"
+                on_press:
+                    root.manager.transition = SlideTransition()
+                    root.manager.transition.direction = 'right'
+                    root.manager.transition.duration = app.transition_time
+                    root.manager.current = 'sine'
+            Button:
+                text: "Quit"
+                color: [0., 0.29, 0.49, 1]
+                background_color: [0, 0, 0, 1]
+                on_release: app.close_menu()
+            Button:
+                text: "Interf."
+                on_press:
+                    root.manager.transition = SlideTransition()
+                    root.manager.transition.direction = 'left'
+                    root.manager.transition.duration = app.transition_time
+                    root.manager.current = 'interference'
+
+            # 3rd line
+            Label:
+            Button:
+                text: "Media"
+                on_press:
+                    root.manager.transition = SlideTransition()
+                    root.manager.transition.direction = 'up'
+                    root.manager.transition.duration = app.transition_time
+                    root.manager.current = 'media'
+            Label:
+        AnimTitle:
+            size_hint: [1, .1]
+            id: blabel
+            font_size: app.txt_fsize
+            target_text: '#Illustrations'
