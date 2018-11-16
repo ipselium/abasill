@@ -20,7 +20,7 @@
 #
 #
 # Creation Date : ven. 09 nov. 2018 15:22:09 CET
-# Last Modified : jeu. 15 nov. 2018 23:02:27 CET
+# Last Modified : ven. 16 nov. 2018 10:45:38 CET
 """
 -----------
 DOCSTRING
@@ -33,7 +33,8 @@ kivy.require('1.9.0')
 
 from kivy.app import App
 from kivy.lang import Builder
-from kivy.properties import NumericProperty, StringProperty, AliasProperty
+from kivy.properties import NumericProperty, StringProperty, AliasProperty, \
+                            ListProperty, BooleanProperty
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.uix.textinput import TextInput
 from kivy.uix.boxlayout import BoxLayout
@@ -125,6 +126,62 @@ class SeriesPanel(Screen):
 
     pass
 
+
+class OlaPanel(Screen):
+    """
+    Ola Panel
+    """
+
+    c = 340.
+    frequency = 340
+    A = NumericProperty(0)
+    B = NumericProperty(0)
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.plot = LinePlot(color=[0., 0.29, 0.49, 1], line_width=20)
+        self.__time = 0
+        self.dt = 2*np.pi/350000
+        self.space = np.linspace(0, 1, 1000)
+
+        _ = Clock.schedule_once(self.start)
+
+    @property
+    def time(self):
+        self.__time += self.dt
+        return self.__time
+
+    def start(self, *args):
+        self.ids.graph.add_plot(self.plot)
+        Clock.schedule_interval(self.get_value, 1/100)
+
+    def get_value(self, *args):
+        k = 2*np.pi*self.frequency/self.c
+        omega = 2*np.pi*self.frequency
+        s = (self.A*np.exp(1j*k*self.space)
+                + self.B*np.exp(-1j*k*self.space))*np.exp(1j*omega*self.time)
+        self.plot.points = [(self.space[i], j) for i, j in enumerate(s.real)]
+
+    @staticmethod
+    def Ola(Nsupporters, d, T, tau):
+        """
+            Return
+                x : Les bonshommes
+                y : Leur déplacement
+                v : Leur vitesse
+        """
+        Nt = 1000
+        t = np.linspace(0, 10, Nt)
+        x = np.arange(0, d*Nsupporters, d) + 1
+
+        y = np.zeros((Nsupporters, Nt))
+        v = np.empty_like(y)
+        for ii in range(Nsupporters):
+            y[ii, :] = np.sin(2*np.pi*(t-ii*tau)/T)
+            v[ii, :] = 2*np.pi*np.cos(2*np.pi*(t-ii*tau)/T)/T
+        return t, x, y, v
+
+
 class SinePanel(Screen):
     """
     Sine Panel
@@ -156,8 +213,14 @@ class SinePanel(Screen):
         s1 = self.A1*np.sin(2*np.pi*self.f1*t + self.t1)
         s2 = self.A2*np.sin(2*np.pi*self.f2*t + self.t2)
         stot = eval('s1 {} s2'.format(self.ids.operator.text))
-        self.plot1.points = [(i, j) for i, j in enumerate(s1)]
-        self.plot2.points = [(i, j) for i, j in enumerate(s2)]
+        if self.ids.disp1.active:
+            self.plot1.points = [(i, j) for i, j in enumerate(s1)]
+        else:
+            self.plot1.points = []
+        if self.ids.disp2.active:
+            self.plot2.points = [(i, j) for i, j in enumerate(s2)]
+        else:
+            self.plot2.points = []
         self.plot.points = [(i, j) for i, j in enumerate(stot)]
 
 
@@ -169,10 +232,15 @@ class InterferencePanel(Screen):
     frequency = 340
     A = NumericProperty(0)
     B = NumericProperty(0)
+    dispB = BooleanProperty(False)
+    wave_examples = ListProperty(['Interferences',
+        'Interferences : Progressive wave (+)', 'Interferences : Progressive Water (-)', 'Interferences : Stationnary Wave'])
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.plot = LinePlot(color=[0., 0.29, 0.49, 1], line_width=2)
+        self.plot1 = LinePlot(color=[1., 0.65, 0., 1], line_width=1)
+        self.plot2 = LinePlot(color=[1., 1., 0., 1], line_width=1)
+        self.plot = LinePlot(color=[0., 0.29, 0.49, 1], line_width=3)
         self.__time = 0
         self.dt = 2*np.pi/350000
         self.space = np.linspace(0, 1, 1000)
@@ -185,15 +253,41 @@ class InterferencePanel(Screen):
         return self.__time
 
     def start(self, *args):
+        self.ids.graph.add_plot(self.plot1)
+        self.ids.graph.add_plot(self.plot2)
         self.ids.graph.add_plot(self.plot)
-        Clock.schedule_interval(self.get_value, 1/100)
+        Clock.schedule_interval(self.get_value, 1/50)
 
     def get_value(self, *args):
+        self.switch_wave()
         k = 2*np.pi*self.frequency/self.c
         omega = 2*np.pi*self.frequency
-        s = (self.A*np.exp(1j*k*self.space)
-                + self.B*np.exp(-1j*k*self.space))*np.exp(1j*omega*self.time)
+        s1 = self.A*np.exp(1j*k*self.space)*np.exp(1j*omega*self.time)
+        s2 = self.B*np.exp(-1j*k*self.space)*np.exp(1j*omega*self.time)
+        s = s1 + s2
         self.plot.points = [(self.space[i], j) for i, j in enumerate(s.real)]
+        if self.ids.dispA.active:
+            self.plot1.points = [(self.space[i], j) for i, j in enumerate(s1.real)]
+        else:
+            self.plot1.points = []
+        if self.ids.dispB.active:
+            self.plot2.points = [(self.space[i], j) for i, j in enumerate(s2.real)]
+        else:
+            self.plot2.points = []
+
+    def switch_wave(self):
+        if self.ids.wave_choice.text == self.wave_examples[1]:
+            self.A = 1
+            self.B = 0
+        elif self.ids.wave_choice.text == self.wave_examples[2]:
+            self.A = 0
+            self.B = 1
+        elif self.ids.wave_choice.text == self.wave_examples[3]:
+            self.A = 1
+            self.B = 1
+        else:
+            self.A = 0.2
+            self.B = 0.4
 
 
 class MediaPanel(Screen):
@@ -208,6 +302,8 @@ class MediaPanel(Screen):
     c2 = NumericProperty(340)
     Rp = NumericProperty(0)
     Tp = NumericProperty(1)
+    media_examples = ListProperty(['Two Media',
+        'Two Media : Water -> Air', 'Two Media : Air -> Water'])
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -235,6 +331,7 @@ class MediaPanel(Screen):
         Clock.schedule_interval(self.get_value, 1/100)
 
     def get_value(self, *args):
+        self.switch_media()
         A = 1
         Zc1 = self.c1*self.rho1
         Zc2 = self.c2*self.rho2
@@ -247,6 +344,23 @@ class MediaPanel(Screen):
         p2 = A*self.Tp*np.exp(-1j*k2*self.x2)*np.exp(1j*self.omega*self.time)
         ptot = np.concatenate([p1, p2])
         self.plot.points = [(self.xtot[i], j) for i, j in enumerate(ptot.real)]
+
+    def switch_media(self):
+        if self.ids.media_choice.text == self.media_examples[1]:
+            self.rho1 = 1000
+            self.rho2 = 1.2
+            self.c1 = 1500
+            self.c2 = 340
+        elif self.ids.media_choice.text == self.media_examples[2]:
+            self.rho1 = 1.2
+            self.rho2 = 1000
+            self.c1 = 340
+            self.c2 = 1500
+        else:
+            self.rho1 = 1.2
+            self.rho2 = 1.2
+            self.c1 = 340
+            self.c2 = 340
 
 
 class Home(Screen):

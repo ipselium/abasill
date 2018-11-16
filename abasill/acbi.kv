@@ -12,6 +12,7 @@ Screens:
     MediaPanel:
     InterferencePanel:
     SeriesPanel:
+    OlaPanel:
 
 <MySlider@Slider>:
     orientation: "horizontal"
@@ -138,11 +139,17 @@ Screens:
             BoxLayout:
                 padding: [10, 0]
                 orientation: "vertical"
-                Text:
-                    text: "Sine 1"
+                BoxLayout:
                     size_hint: [1, .1]
                     padding: [10, 5]
-                    color: [1, .65, 0, 1]
+                    Text:
+                        text: "Sine 1"
+                        color: [1, .65, 0, 1]
+                    CheckBox:
+                        id: disp1
+                        active: True
+                        size_hint_x: None
+                        width: 10
                 GridLayout:
                     cols: 3
                     size_hint: [1, .25]
@@ -175,8 +182,6 @@ Screens:
                         on_value: root.t1 = self.value
                     Text:
                         text: str(round(root.t1, 2))
-
-
                 Spinner:
                     size_hint:[1, .1]
                     id: operator
@@ -185,12 +190,17 @@ Screens:
                     size_hint_y: None
                     height: 40
                     sync_height: True
-
-                Text:
-                    text: "Sine 2"
+                BoxLayout:
                     size_hint: [1, .1]
                     padding: [10, 5]
-                    color: [1, 1, 0, 1]
+                    Text:
+                        text: "Sine 2"
+                        color: [1, .65, 0, 1]
+                    CheckBox:
+                        id: disp2
+                        active: True
+                        size_hint_x: None
+                        width: 10
                 GridLayout:
                     cols: 3
                     size_hint: [1, .25]
@@ -239,9 +249,12 @@ Screens:
     name: "media"
     BoxLayout:
         orientation: "vertical"
-        Title:
+        Spinner:
             size_hint: [1, .1]
-            text: "Two Media"
+            id: media_choice
+            values: root.media_examples
+            text: root.media_examples[0]
+            sync_height: True
         BoxLayout:
             size_hint: [1, .45]
             padding: [10, 10]
@@ -340,9 +353,104 @@ Screens:
 
     BoxLayout:
         orientation: "vertical"
+        Spinner:
+            size_hint: [1, .1]
+            id: wave_choice
+            values: root.wave_examples
+            text: root.wave_examples[0]
+            sync_height: True
+        BoxLayout:
+            size_hint: [1, .80]
+            padding: [10, 10]
+            Graph:
+                id: graph
+                xlabel: "Space"
+                ylabel: "Amplitude"
+                x_ticks_major: 0.25
+                y_ticks_major: 1
+                ymin: -2
+                ymax: 2
+                xmin: 0
+                xmax: 1
+                y_grid_label: True
+                x_grid_label: True
+                x_grid: True
+                y_grid: True
+            BoxLayout:
+                orientation: "vertical"
+                Text:
+                    text: 'p(x, t) = Ae[sup]jwt[/sup] + Be[sup]-jwt[/sup]'
+                GridLayout:
+                    cols: 3
+                    padding: [50, 10]
+                    row_default_height: 40
+                    row_force_default: True
+                    Text:
+                        size_hint_x: None
+                        width: 50
+                        text: "A"
+                        color: [1., 0.65, 0., 1]
+                    MySlider:
+                        range: (0, 1)
+                        step: 0.01
+                        value: root.A
+                        on_value: root.A = self.value
+                    CheckBox:
+                        id: dispA
+                        size_hint_x: None
+                        width: 10
+                    Text:
+                        size_hint_x: None
+                        width: 50
+                        text: "B"
+                        color: [1., 1., 0., 1]
+                    MySlider:
+                        range: (0, 1)
+                        step: 0.01
+                        value: root.B
+                        on_value: root.B = self.value
+                    CheckBox:
+                        id: dispB
+                        size_hint_x: None
+                        width: 10
+        Button:
+            size_hint: [1, .1]
+            text: "Home"
+            on_press:
+                root.manager.transition = SlideTransition()
+                root.manager.transition.direction = 'right'
+                root.manager.transition.duration = app.transition_time
+                root.manager.current = 'home'
+
+<SeriesPanel>:
+    name: "series"
+    canvas.before:
+        Rectangle:
+            pos: self.pos
+            size: self.size
+            source: 'data/home_r.jpg'
+    BoxLayout:
+        Button:
+            size_hint: [1, 0.1]
+            text: "Home"
+            on_press:
+                root.manager.transition = SlideTransition()
+                root.manager.transition.direction = 'up'
+                root.manager.transition.duration = app.transition_time
+                root.manager.current = 'home'
+
+<OlaPanel>:
+    name: "ola"
+    canvas.before:
+        Rectangle:
+            pos: self.pos
+            size: self.size
+            source: 'data/home_r.jpg'
+    BoxLayout:
+        orientation: "vertical"
         Title:
             size_hint: [1, .1]
-            text: "Interferences"
+            text: "Ola"
         BoxLayout:
             size_hint: [1, .80]
             padding: [10, 10]
@@ -392,27 +500,9 @@ Screens:
             text: "Home"
             on_press:
                 root.manager.transition = SlideTransition()
-                root.manager.transition.direction = 'right'
-                root.manager.transition.duration = app.transition_time
-                root.manager.current = 'home'
-
-<SeriesPanel>:
-    name: "series"
-    canvas.before:
-        Rectangle:
-            pos: self.pos
-            size: self.size
-            source: 'data/home_r.jpg'
-    BoxLayout:
-        Button:
-            size_hint: [1, 0.1]
-            text: "Home"
-            on_press:
-                root.manager.transition = SlideTransition()
                 root.manager.transition.direction = 'up'
                 root.manager.transition.duration = app.transition_time
                 root.manager.current = 'home'
-
 
 <Home>:
     name: "home"
@@ -439,7 +529,14 @@ Screens:
             padding: [80, 80, 50, 50]
             cols: 3
             # 1st line
-            Label:
+            Button:
+                text: "Ola"
+                on_press:
+                    root.manager.transition = SlideTransition()
+                    root.manager.transition.direction = 'down'
+                    root.manager.transition.duration = app.transition_time
+                    root.manager.current = 'ola'
+
             Button:
                 text: "Series"
                 on_press:
