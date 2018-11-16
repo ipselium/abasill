@@ -59,7 +59,7 @@ Screens:
     multiline: False
     size_hint_x: None
     size_hint_y: None
-    width: 50
+    width: 60
     height: 30
 
 
@@ -117,9 +117,13 @@ Screens:
 
     BoxLayout:
         orientation: "vertical"
-        Title:
+        Spinner:
             size_hint: [1, .1]
-            text: "Operations with sine functions"
+            id: preset
+            values: root.presets
+            text: root.presets[0]
+            on_text: root.switch_preset()
+            sync_height: True
         BoxLayout:
             size_hint: [1, .8]
             padding: [10, 10]
@@ -234,8 +238,6 @@ Screens:
                         on_value: root.t2 = self.value
                     Text:
                         text: str(round(root.t2, 2))
-
-
         Button:
             size_hint: [1, .1]
             text: "Home"
@@ -251,9 +253,10 @@ Screens:
         orientation: "vertical"
         Spinner:
             size_hint: [1, .1]
-            id: media_choice
-            values: root.media_examples
-            text: root.media_examples[0]
+            id: preset
+            values: root.presets
+            text: root.presets[0]
+            on_text: root.switch_preset()
             sync_height: True
         BoxLayout:
             size_hint: [1, .45]
@@ -355,9 +358,10 @@ Screens:
         orientation: "vertical"
         Spinner:
             size_hint: [1, .1]
-            id: wave_choice
-            values: root.wave_examples
-            text: root.wave_examples[0]
+            id: preset
+            values: root.presets
+            text: root.presets[0]
+            on_text: root.switch_preset()
             sync_height: True
         BoxLayout:
             size_hint: [1, .80]
@@ -430,6 +434,74 @@ Screens:
             size: self.size
             source: 'data/home_r.jpg'
     BoxLayout:
+        orientation: "vertical"
+        Spinner:
+            size_hint: [1, .1]
+            id: preset
+            values: root.presets
+            text: root.presets[0]
+            on_text: root.switch_presets()
+            sync_height: True
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint: [1, .8]
+            padding: [10, 10]
+            Graph:
+                id: graph
+                xlabel: "Space"
+                ylabel: "Amplitude"
+                x_ticks_major: 1
+                y_ticks_major: 1
+                ymin: -2
+                ymax: 2
+                xmin: 0
+                xmax: 2
+                y_grid_label: True
+                x_grid_label: True
+                x_grid: True
+                y_grid: True
+            GridLayout:
+                size_hint: [1, 0.1]
+                cols: 3
+                Text:
+                    size_hint_x: None
+                    width: 50
+                    text: "N"
+                MySlider:
+                    range: (1, 100)
+                    step: 1
+                    value: root.N
+                    on_value:
+                        root.N = self.value
+                        root.switch_parity()
+                Text:
+                    size_hint_x: None
+                    width: 80
+                    text: str(root.N)
+            GridLayout:
+                size_hint: [1, .3]
+                cols: 2
+                Text:
+                    text: 'Harmonics ?'
+                Text:
+                    text: 'Amplitude ?'
+                Spinner:
+                    id: parity
+                    values: root.parity
+                    text: root.parity[0]
+                    on_text: root.switch_parity()
+                    height: 40
+                    size_hint_y: None
+                    sync_height: True
+                TextInput:
+                    multiline: False
+                    text: root.f_i
+                    size_hint_y: None
+                    height: 40
+                    on_text_validate:
+                        root.f_i = self.text
+                        root.check_f_i()
+
         Button:
             size_hint: [1, 0.1]
             text: "Home"
@@ -514,7 +586,6 @@ Screens:
             pos: self.pos
             size: self.size
             source: 'data/home.jpg'
-
     BoxLayout:
         orientation: "vertical"
         AnimTitle:
@@ -536,7 +607,6 @@ Screens:
                     root.manager.transition.direction = 'down'
                     root.manager.transition.duration = app.transition_time
                     root.manager.current = 'ola'
-
             Button:
                 text: "Series"
                 on_press:

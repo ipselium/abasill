@@ -20,7 +20,7 @@
 #
 #
 # Creation Date : ven. 09 nov. 2018 15:22:09 CET
-# Last Modified : ven. 16 nov. 2018 10:45:38 CET
+# Last Modified : ven. 16 nov. 2018 17:47:26 CET
 """
 -----------
 DOCSTRING
@@ -119,12 +119,93 @@ class MicrophonePanel(Screen):
     def get_value(self, dt):
         self.plot.points = [(i, j/100) for i, j in enumerate(levels)]
 
+
 class SeriesPanel(Screen):
     """
     Series Panel
     """
 
-    pass
+    presets = ['Series', 'Square', 'Triangle', 'Sawtooth']
+    N = NumericProperty(1)
+    parity = ListProperty(['All', 'Even', 'Odd'])
+    f_i = StringProperty('1/i')
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.plot = LinePlot(color=[0., 0.29, 0.49, 1], line_width=3)
+        self.t = np.linspace(0, 2, 1000)
+        self.range = []
+        self.__even = range(2, self.N, 2)
+        self.__odd = range(3, self.N, 2)
+        self.__all = range(2, self.N)
+
+        _ = Clock.schedule_once(self.start)
+
+    @property
+    def even(self):
+        return range(2, self.N, 2)
+
+    @property
+    def odd(self):
+        return range(3, self.N, 2)
+
+    @property
+    def all(self):
+        return range(2, self.N)
+
+    def start(self, *args):
+        self.ids.graph.add_plot(self.plot)
+        Clock.schedule_interval(self.get_value, 1/10)
+
+    def get_value(self, *args):
+        s = np.sin(2*np.pi*self.t)
+        if self.f_i in ['Bad expression', 'Bad values']:
+            self.plot.points = []
+        else:
+            self.amp = lambda i: eval(self.f_i)
+            for i in self.range:
+                if type(self.amp(i)) != float:
+                    self.f_i = 'Bad values'
+                    return
+                s += self.amp(i)*np.sin(2*np.pi*self.t*i)
+            self.plot.points = [(self.t[i], j) for i, j in enumerate(s)]
+
+    def check_f_i(self):
+        if any(char not in 'i+-*/()' for char in self.f_i):
+            self.f_i = 'Bad expression'
+
+    def switch_parity(self):
+        if self.ids.parity.text == self.parity[0]:
+            self.range = self.all
+        elif self.ids.parity.text == self.parity[1]:
+            self.range = self.even
+        elif self.ids.parity.text == self.parity[2]:
+            self.range = self.odd
+
+    def switch_presets(self):
+        if self.ids.preset.text == self.presets[1]:
+            self.f_i = '1/i'
+            self.N = 100
+            self.range = self.odd
+            self.ids.parity.text = self.parity[2]
+
+        elif self.ids.preset.text == self.presets[2]:
+            self.f_i = '(-1)**((i-1)/2)/i**2'
+            self.N = 100
+            self.range = self.odd
+            self.ids.parity.text = self.parity[2]
+
+        elif self.ids.preset.text == self.presets[3]:
+            self.f_i = '1/i'
+            self.N = 100
+            self.range = self.even
+            self.ids.parity.text = self.parity[0]
+
+        else:
+            self.f_i = '1/i'
+            self.N = 1
+            self.range = []
+            self.ids.parity.text = self.parity[0]
 
 
 class OlaPanel(Screen):
@@ -193,6 +274,7 @@ class SinePanel(Screen):
     A2 = NumericProperty(0.5)
     t1 = NumericProperty(0)
     t2 = NumericProperty(0)
+    presets = ["Operations with sine functions", 'Battement', 'Porteuse']
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -213,6 +295,7 @@ class SinePanel(Screen):
         s1 = self.A1*np.sin(2*np.pi*self.f1*t + self.t1)
         s2 = self.A2*np.sin(2*np.pi*self.f2*t + self.t2)
         stot = eval('s1 {} s2'.format(self.ids.operator.text))
+        self.plot.points = [(i, j) for i, j in enumerate(stot)]
         if self.ids.disp1.active:
             self.plot1.points = [(i, j) for i, j in enumerate(s1)]
         else:
@@ -221,8 +304,9 @@ class SinePanel(Screen):
             self.plot2.points = [(i, j) for i, j in enumerate(s2)]
         else:
             self.plot2.points = []
-        self.plot.points = [(i, j) for i, j in enumerate(stot)]
 
+    def switch_preset(self):
+        pass
 
 class InterferencePanel(Screen):
     """
@@ -233,8 +317,8 @@ class InterferencePanel(Screen):
     A = NumericProperty(0)
     B = NumericProperty(0)
     dispB = BooleanProperty(False)
-    wave_examples = ListProperty(['Interferences',
-        'Interferences : Progressive wave (+)', 'Interferences : Progressive Water (-)', 'Interferences : Stationnary Wave'])
+    presets = ListProperty(['Interferences',
+        'Progressive wave (+)', 'Progressive Wave (-)', 'Stationnary Wave'])
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -259,7 +343,6 @@ class InterferencePanel(Screen):
         Clock.schedule_interval(self.get_value, 1/50)
 
     def get_value(self, *args):
-        self.switch_wave()
         k = 2*np.pi*self.frequency/self.c
         omega = 2*np.pi*self.frequency
         s1 = self.A*np.exp(1j*k*self.space)*np.exp(1j*omega*self.time)
@@ -275,14 +358,14 @@ class InterferencePanel(Screen):
         else:
             self.plot2.points = []
 
-    def switch_wave(self):
-        if self.ids.wave_choice.text == self.wave_examples[1]:
+    def switch_preset(self):
+        if self.ids.preset.text == self.presets[1]:
             self.A = 1
             self.B = 0
-        elif self.ids.wave_choice.text == self.wave_examples[2]:
+        elif self.ids.preset.text == self.presets[2]:
             self.A = 0
             self.B = 1
-        elif self.ids.wave_choice.text == self.wave_examples[3]:
+        elif self.ids.preset.text == self.presets[3]:
             self.A = 1
             self.B = 1
         else:
@@ -302,8 +385,7 @@ class MediaPanel(Screen):
     c2 = NumericProperty(340)
     Rp = NumericProperty(0)
     Tp = NumericProperty(1)
-    media_examples = ListProperty(['Two Media',
-        'Two Media : Water -> Air', 'Two Media : Air -> Water'])
+    presets = ListProperty(['Two Media', 'Water -> Air', 'Air -> Water'])
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -331,7 +413,6 @@ class MediaPanel(Screen):
         Clock.schedule_interval(self.get_value, 1/100)
 
     def get_value(self, *args):
-        self.switch_media()
         A = 1
         Zc1 = self.c1*self.rho1
         Zc2 = self.c2*self.rho2
@@ -345,13 +426,13 @@ class MediaPanel(Screen):
         ptot = np.concatenate([p1, p2])
         self.plot.points = [(self.xtot[i], j) for i, j in enumerate(ptot.real)]
 
-    def switch_media(self):
-        if self.ids.media_choice.text == self.media_examples[1]:
+    def switch_preset(self):
+        if self.ids.preset.text == self.presets[1]:
             self.rho1 = 1000
             self.rho2 = 1.2
             self.c1 = 1500
             self.c2 = 340
-        elif self.ids.media_choice.text == self.media_examples[2]:
+        elif self.ids.preset.text == self.presets[2]:
             self.rho1 = 1.2
             self.rho2 = 1000
             self.c1 = 340
