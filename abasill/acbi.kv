@@ -14,14 +14,13 @@ Screens:
     SeriesPanel:
     OlaPanel:
 
-<MySlider@Slider>:
+<Slider@Slider>:
     orientation: "horizontal"
     cursor_size: (20, 20)
 
-<Text@Label>:
-    markup: True
-    font_name: app.txt_font
-    font_size: app.txt_fsize
+<Spinner@Spinner>:
+    size_hint: [1, .1]
+    sync_height: True
 
 <Button@Button>:
     bold: True
@@ -30,9 +29,18 @@ Screens:
     background_color: app.btn_bg
     border: (16, 16, 16, 16)
 
+<Graph@Graph>:
+    y_grid_label: True
+    x_grid_label: True
+    x_grid: True
+    y_grid: True
+
+<Label@Label>:
+    markup: True
+    font_name: app.txt_font
+    font_size: app.txt_fsize
+
 <Title@Label>:
-    font_name: app.title_font
-    font_size: app.title_fsize
     canvas.before:
         Color:
             rgba: app.title_bcolor
@@ -65,6 +73,9 @@ Screens:
 
 <MicrophonePanel>:
     name: "micro"
+    on_enter:
+        app.get_level.resume()
+        root.start()
     canvas.before:
         Rectangle:
             pos: self.pos
@@ -77,7 +88,7 @@ Screens:
             size_hint: [1, .1]
             text: "Microphone Panel"
         BoxLayout:
-            size_hint: [1, .70]
+            size_hint: [1, .8]
             padding: [10, 10]
             Graph:
                 id: graph
@@ -85,23 +96,14 @@ Screens:
                 ylabel: ""
                 x_ticks_major: 25
                 y_ticks_major: 100
-                x_grid: True
-                y_grid: True
                 ymin: 0
                 ymax: 500
-        GridLayout:
-            cols:2
-            size_hint: [1, .1]
-            Button:
-                text: "Start"
-                on_release: root.start()
-            Button:
-                text: "Stop"
-                on_release: root.stop()
         Button:
             size_hint: [1, .1]
             text: "Home"
             on_press:
+                root.stop()
+                app.get_level.pause()
                 root.manager.transition = SwapTransition()
                 root.manager.transition.direction = 'up'
                 root.manager.transition.duration = app.transition_time
@@ -109,6 +111,7 @@ Screens:
 
 <SinePanel>:
     name: "sine"
+    on_enter: root.start()
     canvas.before:
         Rectangle:
             pos: self.pos
@@ -118,12 +121,10 @@ Screens:
     BoxLayout:
         orientation: "vertical"
         Spinner:
-            size_hint: [1, .1]
             id: preset
             values: root.presets
             text: root.presets[0]
             on_text: root.switch_preset()
-            sync_height: True
         BoxLayout:
             size_hint: [1, .8]
             padding: [10, 10]
@@ -134,19 +135,17 @@ Screens:
                 x_ticks_minor: 5
                 x_ticks_major: 25
                 y_ticks_major: 0.25
+                xmin: 0
+                xmax: 1
                 ymin: -2
                 ymax: 2
-#                x_min:0
-#                x_max:100
-                x_grid: True
-                y_grid: True
             BoxLayout:
                 padding: [10, 0]
                 orientation: "vertical"
                 BoxLayout:
                     size_hint: [1, .1]
                     padding: [10, 5]
-                    Text:
+                    Label:
                         text: "Sine 1"
                         color: [1, .65, 0, 1]
                     CheckBox:
@@ -159,45 +158,43 @@ Screens:
                     size_hint: [1, .25]
                     row_default_height: 40
                     row_force_default: True
-                    Text:
+                    Label:
                         text: "Freq."
-                    MySlider:
+                    Slider:
                         range: (1, 100)
                         step: 1
                         value: root.f1
                         on_value: root.f1 = self.value
-                    Text:
+                    Label:
                         text: str(root.f1)
-                    Text:
+                    Label:
                         text: "Amp."
-                    MySlider:
+                    Slider:
                         range: (0, 1)
                         step: 0.1
                         value: root.A1
                         on_value: root.A1 = self.value
-                    Text:
+                    Label:
                         text: str(round(root.A1, 1))
-                    Text:
+                    Label:
                         text: "Phase"
-                    MySlider:
+                    Slider:
                         range: (0, 2*np.pi)
                         step: 0.01
                         value: root.t1
                         on_value: root.t1 = self.value
-                    Text:
+                    Label:
                         text: str(round(root.t1, 2))
                 Spinner:
-                    size_hint:[1, .1]
                     id: operator
-                    values: ['+', '-', '*']
-                    text: '+'
+                    values: root.operators
+                    text: root.operators[0]
                     size_hint_y: None
                     height: 40
-                    sync_height: True
                 BoxLayout:
                     size_hint: [1, .1]
                     padding: [10, 5]
-                    Text:
+                    Label:
                         text: "Sine 2"
                         color: [1, .65, 0, 1]
                     CheckBox:
@@ -210,38 +207,39 @@ Screens:
                     size_hint: [1, .25]
                     row_default_height: 40
                     row_force_default: True
-                    Text:
+                    Label:
                         text: "Freq."
-                    MySlider:
+                    Slider:
                         size_hint_x: .8
                         range: (1, 100)
                         step: 1
                         value: root.f2
                         on_value: root.f2 = self.value
-                    Text:
+                    Label:
                         text: str(root.f2)
-                    Text:
+                    Label:
                         text: "Amp."
-                    MySlider:
+                    Slider:
                         range: (0, 1)
                         step: 0.01
                         value: root.A2
                         on_value: root.A2 = self.value
-                    Text:
+                    Label:
                         text: str(round(root.A2, 1))
-                    Text:
+                    Label:
                         text: "Phase"
-                    MySlider:
+                    Slider:
                         range: (0, 2*np.pi)
                         step: 0.01
                         value: root.t2
                         on_value: root.t2 = self.value
-                    Text:
+                    Label:
                         text: str(round(root.t2, 2))
         Button:
             size_hint: [1, .1]
             text: "Home"
             on_press:
+                root.stop()
                 root.manager.transition = SlideTransition()
                 root.manager.transition.direction = 'left'
                 root.manager.transition.duration = app.transition_time
@@ -249,15 +247,14 @@ Screens:
 
 <MediaPanel>:
     name: "media"
+    on_enter: root.start()
     BoxLayout:
         orientation: "vertical"
         Spinner:
-            size_hint: [1, .1]
             id: preset
             values: root.presets
             text: root.presets[0]
             on_text: root.switch_preset()
-            sync_height: True
         BoxLayout:
             size_hint: [1, .45]
             padding: [10, 10]
@@ -271,31 +268,26 @@ Screens:
                 ymax: 2
                 xmin: -2
                 xmax: 2
-                y_grid_label: True
-                x_grid_label: True
-                x_grid: True
-                y_grid: True
         GridLayout:
             size_hint: [1., .15]
             padding: [0, 0, 50, 0]
             cols: 6
             row_default_height: 40
             row_force_default: True
-            Text:
+            Label:
                 text: "p[sub]1[/sub]"
-            MySlider:
+            Slider:
                 range: (root.rho_min, root.rho_max)
                 step: 0.1
-                sensivity: 1
                 value: root.rho1
                 on_value: root.rho1 = self.value
             FloatInput:
                 text: str(round(root.rho1, 1))
                 on_text_validate: root.rho1 = round(float(self.text)) if root.rho_min <= float(self.text) <= root.rho_max else root.rho_min
 
-            Text:
+            Label:
                 text: "p[sub]2[/sub]"
-            MySlider:
+            Slider:
                 range: (root.rho_min, root.rho_max)
                 step: 0.1
                 value: root.rho2
@@ -304,9 +296,9 @@ Screens:
                 text: str(round(root.rho2, 1))
                 on_text_validate: root.rho2 = round(float(self.text)) if root.rho_min <= float(self.text) <= root.rho_max else root.rho_min
 
-            Text:
+            Label:
                 text: "c[sub]1[/sub]"
-            MySlider:
+            Slider:
                 range: (root.c_min, root.c_max)
                 step: 1
                 value: root.c1
@@ -315,9 +307,9 @@ Screens:
                 text: str(round(root.c1, 1))
                 on_text_validate: root.c1 = round(float(self.text)) if root.c_min <= float(self.text) <= root.c_max else root.c_min
 
-            Text:
+            Label:
                 text: "c[sub]2[/sub]"
-            MySlider:
+            Slider:
                 range: (root.c_min, root.c_max)
                 step: 1
                 value: root.c2
@@ -328,10 +320,10 @@ Screens:
 
         BoxLayout:
             size_hint: [1, .15]
-            Text:
+            Label:
                 text: 'R[sub]p[/sub] => ' + str(round(root.Rp, 2))
                 color: [1, 0, 0, 1]
-            Text:
+            Label:
                 text: 'T[sub]p[/sub] => ' + str(round(root.Tp, 2))
                 color: [1, 0, 0, 1]
 
@@ -340,6 +332,7 @@ Screens:
             size_hint: [1, .1]
             text: "Home"
             on_press:
+                root.stop()
                 root.manager.transition = SlideTransition()
                 root.manager.transition.direction = 'down'
                 root.manager.transition.duration = app.transition_time
@@ -348,6 +341,7 @@ Screens:
 
 <InterferencePanel>:
     name: "interference"
+    on_enter: root.start()
     canvas.before:
         Rectangle:
             pos: self.pos
@@ -357,12 +351,10 @@ Screens:
     BoxLayout:
         orientation: "vertical"
         Spinner:
-            size_hint: [1, .1]
             id: preset
             values: root.presets
             text: root.presets[0]
             on_text: root.switch_preset()
-            sync_height: True
         BoxLayout:
             size_hint: [1, .80]
             padding: [10, 10]
@@ -376,25 +368,21 @@ Screens:
                 ymax: 2
                 xmin: 0
                 xmax: 1
-                y_grid_label: True
-                x_grid_label: True
-                x_grid: True
-                y_grid: True
             BoxLayout:
                 orientation: "vertical"
-                Text:
+                Label:
                     text: 'p(x, t) = Ae[sup]jwt[/sup] + Be[sup]-jwt[/sup]'
                 GridLayout:
                     cols: 3
                     padding: [50, 10]
                     row_default_height: 40
                     row_force_default: True
-                    Text:
+                    Label:
                         size_hint_x: None
                         width: 50
                         text: "A"
                         color: [1., 0.65, 0., 1]
-                    MySlider:
+                    Slider:
                         range: (0, 1)
                         step: 0.01
                         value: root.A
@@ -403,12 +391,12 @@ Screens:
                         id: dispA
                         size_hint_x: None
                         width: 10
-                    Text:
+                    Label:
                         size_hint_x: None
                         width: 50
                         text: "B"
                         color: [1., 1., 0., 1]
-                    MySlider:
+                    Slider:
                         range: (0, 1)
                         step: 0.01
                         value: root.B
@@ -421,6 +409,7 @@ Screens:
             size_hint: [1, .1]
             text: "Home"
             on_press:
+                root.stop()
                 root.manager.transition = SlideTransition()
                 root.manager.transition.direction = 'right'
                 root.manager.transition.duration = app.transition_time
@@ -428,6 +417,7 @@ Screens:
 
 <SeriesPanel>:
     name: "series"
+    on_enter: root.start()
     canvas.before:
         Rectangle:
             pos: self.pos
@@ -436,12 +426,10 @@ Screens:
     BoxLayout:
         orientation: "vertical"
         Spinner:
-            size_hint: [1, .1]
             id: preset
             values: root.presets
             text: root.presets[0]
-            on_text: root.switch_presets()
-            sync_height: True
+            on_text: root.switch_preset()
         BoxLayout:
             orientation: 'vertical'
             size_hint: [1, .8]
@@ -456,34 +444,30 @@ Screens:
                 ymax: 2
                 xmin: 0
                 xmax: 2
-                y_grid_label: True
-                x_grid_label: True
-                x_grid: True
-                y_grid: True
             GridLayout:
                 size_hint: [1, 0.1]
                 cols: 3
-                Text:
+                Label:
                     size_hint_x: None
                     width: 50
                     text: "N"
-                MySlider:
+                Slider:
                     range: (1, 100)
                     step: 1
                     value: root.N
                     on_value:
                         root.N = self.value
                         root.switch_parity()
-                Text:
+                Label:
                     size_hint_x: None
                     width: 80
                     text: str(root.N)
             GridLayout:
                 size_hint: [1, .3]
                 cols: 2
-                Text:
+                Label:
                     text: 'Harmonics ?'
-                Text:
+                Label:
                     text: 'Amplitude ?'
                 Spinner:
                     id: parity
@@ -492,7 +476,6 @@ Screens:
                     on_text: root.switch_parity()
                     height: 40
                     size_hint_y: None
-                    sync_height: True
                 TextInput:
                     multiline: False
                     text: root.f_i
@@ -506,6 +489,7 @@ Screens:
             size_hint: [1, 0.1]
             text: "Home"
             on_press:
+                root.stop()
                 root.manager.transition = SlideTransition()
                 root.manager.transition.direction = 'up'
                 root.manager.transition.duration = app.transition_time
@@ -513,6 +497,7 @@ Screens:
 
 <OlaPanel>:
     name: "ola"
+    on_enter: root.start()
     canvas.before:
         Rectangle:
             pos: self.pos
@@ -536,33 +521,29 @@ Screens:
                 ymax: 2
                 xmin: 0
                 xmax: 1
-                y_grid_label: True
-                x_grid_label: True
-                x_grid: True
-                y_grid: True
             BoxLayout:
                 orientation: "vertical"
-                Text:
+                Label:
                     text: 'p(x, t) = Ae[sup]jwt[/sup] + Be[sup]-jwt[/sup]'
                 GridLayout:
                     cols: 2
                     padding: [50, 10]
                     row_default_height: 40
                     row_force_default: True
-                    Text:
+                    Label:
                         size_hint_x: None
                         width: 50
                         text: "A"
-                    MySlider:
+                    Slider:
                         range: (0, 1)
                         step: 0.01
                         value: root.A
                         on_value: root.A = self.value
-                    Text:
+                    Label:
                         size_hint_x: None
                         width: 50
                         text: "B"
-                    MySlider:
+                    Slider:
                         range: (0, 1)
                         step: 0.01
                         value: root.B
@@ -571,6 +552,7 @@ Screens:
             size_hint: [1, 0.1]
             text: "Home"
             on_press:
+                root.stop()
                 root.manager.transition = SlideTransition()
                 root.manager.transition.direction = 'up'
                 root.manager.transition.duration = app.transition_time

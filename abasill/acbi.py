@@ -20,7 +20,7 @@
 #
 #
 # Creation Date : ven. 09 nov. 2018 15:22:09 CET
-# Last Modified : ven. 16 nov. 2018 17:47:26 CET
+# Last Modified : dim. 18 nov. 2018 00:53:11 CET
 """
 -----------
 DOCSTRING
@@ -43,50 +43,71 @@ from kivy.uix.popup import Popup
 from kivy.uix.button import Button
 from kivy.garden.graph import LinePlot, MeshLinePlot
 from kivy.clock import Clock
-from threading import Thread
+import threading
+import time
 import alsaaudio, audioop
 import queue
 import numpy as np
 import re
 
-def get_microphone_level_alsa():
-    """
-    https://stackoverflow.com/questions/1936828/how-get-sound-input-from-microphone-in-python-and-process-it-on-the-fly
-    """
 
-    global levels
+class MicrophoneLevel(threading.Thread):
 
-    # Open the device in nonblocking capture mode. The last argument could
-    # just as well have been zero for blocking mode. Then we could have
-    # left out the sleep call in the bottom of the loop
-    inp = alsaaudio.PCM(alsaaudio.PCM_CAPTURE,alsaaudio.PCM_NONBLOCK)
+    def __init__(self):
+        threading.Thread.__init__(self)
+        threading.Thread.daemon = True
+        self.busy = threading.Event()
+        self.available = threading.Event()
 
-    # Set attributes: Mono, 8000 Hz, 16 bit little endian samples
-    inp.setchannels(1)
-    inp.setrate(8000)
-    inp.setformat(alsaaudio.PCM_FORMAT_S16_LE)
+    def run(self):
+        """
+        https://stackoverflow.com/questions/1936828/how-get-sound-input-from-microphone-in-python-and-process-it-on-the-fly
+        """
 
-    # The period size controls the internal number of frames per period.
-    # The significance of this parameter is documented in the ALSA api.
-    # For our purposes, it is suficcient to know that reads from the device
-    # will return this many frames. Each frame being 2 bytes long.
-    # This means that the reads below will return either 320 bytes of data
-    # or 0 bytes of data. The latter is possible because we are in nonblocking
-    # mode.
-#    inp.setperiodsize(160)
-    inp.setperiodsize(320)
+        global levels
 
-    while True:
-        # Read data from device
-        l, data = inp.read()
-        if l:
-            # Return the maximum of the absolute value of all samples in a fragment.
-            mx = audioop.rms(data, 2)
-            levels.append(mx)
+        # Open the device in nonblocking capture mode. The last argument could
+        # just as well have been zero for blocking mode. Then we could have
+        # left out the sleep call in the bottom of the loop
+        inp = alsaaudio.PCM(alsaaudio.PCM_CAPTURE,alsaaudio.PCM_NONBLOCK)
 
-        if len(levels) > 100:
-            levels = []
+        # Set attributes: Mono, 8000 Hz, 16 bit little endian samples
+        inp.setchannels(1)
+        inp.setrate(8000)
+        inp.setformat(alsaaudio.PCM_FORMAT_S16_LE)
 
+        # The period size controls the internal number of frames per period.
+        # The significance of this parameter is documented in the ALSA api.
+        # For our purposes, it is suficcient to know that reads from the device
+        # will return this many frames. Each frame being 2 bytes long.
+        # This means that the reads below will return either 320 bytes of data
+        # or 0 bytes of data. The latter is possible because we are in nonblocking
+        # mode.
+    #    inp.setperiodsize(160)
+        inp.setperiodsize(320)
+
+        while True:
+
+            self.available.wait()   # Block until flag is True
+
+            # Read data from device
+            l, data = inp.read()
+            if l:
+                # Return the maximum of the absolute value of all samples in a
+                # fragment.
+                mx = audioop.rms(data, 2)
+                levels.append(mx)
+
+            if len(levels) > 100:
+                levels = []
+                print('running !')
+
+
+    def pause(self):
+        self.available.clear()  # Reset flag to False
+
+    def resume(self):
+        self.available.set()    # Set flag to True
 
 class FloatInput(TextInput):
 
@@ -112,9 +133,10 @@ class MicrophonePanel(Screen):
 
     def start(self):
         self.ids.graph.add_plot(self.plot)
-        Clock.schedule_interval(self.get_value, 1/24)
+        self.clock = Clock.schedule_interval(self.get_value, 1/24)
+
     def stop(self):
-        Clock.unschedule(self.get_value)
+        Clock.unschedule(self.clock)
 
     def get_value(self, dt):
         self.plot.points = [(i, j/100) for i, j in enumerate(levels)]
@@ -139,8 +161,6 @@ class SeriesPanel(Screen):
         self.__odd = range(3, self.N, 2)
         self.__all = range(2, self.N)
 
-        _ = Clock.schedule_once(self.start)
-
     @property
     def even(self):
         return range(2, self.N, 2)
@@ -155,7 +175,10 @@ class SeriesPanel(Screen):
 
     def start(self, *args):
         self.ids.graph.add_plot(self.plot)
-        Clock.schedule_interval(self.get_value, 1/10)
+        self.clock = Clock.schedule_interval(self.get_value, 1/10)
+
+    def stop(self):
+        Clock.unschedule(self.clock)
 
     def get_value(self, *args):
         s = np.sin(2*np.pi*self.t)
@@ -182,7 +205,7 @@ class SeriesPanel(Screen):
         elif self.ids.parity.text == self.parity[2]:
             self.range = self.odd
 
-    def switch_presets(self):
+    def switch_preset(self):
         if self.ids.preset.text == self.presets[1]:
             self.f_i = '1/i'
             self.N = 100
@@ -225,8 +248,6 @@ class OlaPanel(Screen):
         self.dt = 2*np.pi/350000
         self.space = np.linspace(0, 1, 1000)
 
-        _ = Clock.schedule_once(self.start)
-
     @property
     def time(self):
         self.__time += self.dt
@@ -234,7 +255,10 @@ class OlaPanel(Screen):
 
     def start(self, *args):
         self.ids.graph.add_plot(self.plot)
-        Clock.schedule_interval(self.get_value, 1/100)
+        self.clock = Clock.schedule_interval(self.get_value, 1/100)
+
+    def stop(self):
+        Clock.unschedule(self.clock)
 
     def get_value(self, *args):
         k = 2*np.pi*self.frequency/self.c
@@ -274,7 +298,8 @@ class SinePanel(Screen):
     A2 = NumericProperty(0.5)
     t1 = NumericProperty(0)
     t2 = NumericProperty(0)
-    presets = ["Operations with sine functions", 'Battement', 'Porteuse']
+    operators = ListProperty(['+', '-', '*'])
+    presets = ["Operations with sine functions", 'Acoustic Beat']
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -282,31 +307,48 @@ class SinePanel(Screen):
         self.plot2 = LinePlot(color=[1., 1., 0., 1], line_width=1)
         self.plot = LinePlot(color=[0., 0.29, 0.49, 1], line_width=3)
 
-        _ = Clock.schedule_once(self.start)
-
     def start(self, *args):
         self.ids.graph.add_plot(self.plot1)
         self.ids.graph.add_plot(self.plot2)
         self.ids.graph.add_plot(self.plot)
-        Clock.schedule_interval(self.get_value, 1/10)
+        self.clock = Clock.schedule_interval(self.get_value, 1/10)
+
+    def stop(self):
+        Clock.unschedule(self.clock)
 
     def get_value(self, *args):
         t = np.linspace(0, 1, 1000)
         s1 = self.A1*np.sin(2*np.pi*self.f1*t + self.t1)
         s2 = self.A2*np.sin(2*np.pi*self.f2*t + self.t2)
         stot = eval('s1 {} s2'.format(self.ids.operator.text))
-        self.plot.points = [(i, j) for i, j in enumerate(stot)]
+        self.plot.points = [(t[i], j) for i, j in enumerate(stot)]
         if self.ids.disp1.active:
-            self.plot1.points = [(i, j) for i, j in enumerate(s1)]
+            self.plot1.points = [(t[i], j) for i, j in enumerate(s1)]
         else:
             self.plot1.points = []
         if self.ids.disp2.active:
-            self.plot2.points = [(i, j) for i, j in enumerate(s2)]
+            self.plot2.points = [(t[i], j) for i, j in enumerate(s2)]
         else:
             self.plot2.points = []
 
     def switch_preset(self):
-        pass
+        if self.ids.preset.text == self.presets[0]:
+            self.f1 = 1
+            self.f2 = 1
+            self.A1 = 1
+            self.A2 = 1
+            self.t1 = 0
+            self.t2 = 0
+            self.ids.operator.text = self.operators[0]
+
+        elif self.ids.preset.text == self.presets[1]:
+            self.f1 = 20
+            self.f2 = 22
+            self.A1 = 1
+            self.A2 = 1
+            self.t1 = 0
+            self.t2 = 0
+            self.ids.operator.text = self.operators[0]
 
 class InterferencePanel(Screen):
     """
@@ -329,8 +371,6 @@ class InterferencePanel(Screen):
         self.dt = 2*np.pi/350000
         self.space = np.linspace(0, 1, 1000)
 
-        _ = Clock.schedule_once(self.start)
-
     @property
     def time(self):
         self.__time += self.dt
@@ -340,7 +380,10 @@ class InterferencePanel(Screen):
         self.ids.graph.add_plot(self.plot1)
         self.ids.graph.add_plot(self.plot2)
         self.ids.graph.add_plot(self.plot)
-        Clock.schedule_interval(self.get_value, 1/50)
+        self.clock = Clock.schedule_interval(self.get_value, 1/50)
+
+    def stop(self):
+        Clock.unschedule(self.clock)
 
     def get_value(self, *args):
         k = 2*np.pi*self.frequency/self.c
@@ -398,8 +441,6 @@ class MediaPanel(Screen):
         self.x2 = np.linspace(0, 2, 1000)
         self.xtot = np.concatenate([self.x1, self.x2])
 
-        _ = Clock.schedule_once(self.start)
-
     @property
     def time(self):
         self.__time += self.dt
@@ -409,8 +450,10 @@ class MediaPanel(Screen):
         self.ids.graph.add_plot(self.plot)
         self.ids.graph.add_plot(self.sep)
         self.sep.points = [(0, j) for j in self.xtot]
+        self.clock = Clock.schedule_interval(self.get_value, 1/100)
 
-        Clock.schedule_interval(self.get_value, 1/100)
+    def stop(self):
+        Clock.unschedule(self.clock)
 
     def get_value(self, *args):
         A = 1
@@ -471,6 +514,11 @@ class AcousticBasicIllustration(App):
     btn_bg = list(np.array(title_bcolor)/0.35)
     transition_time = 0.5
 
+    def __init__(self, get_level, **kwargs):
+        super().__init__(**kwargs)
+        self.get_level = get_level
+        self.get_level.pause()
+
     def build(self):
         return Builder.load_file('acbi.kv')
 
@@ -488,13 +536,16 @@ class AcousticBasicIllustration(App):
         box.add_widget(Button(text = "NO, I WANT TO GO BACK", on_release=popup.dismiss))
         popup.open()
 
+#    def on_stop(self):
+#        self.get_level.resume()
+
 if __name__ == "__main__":
 
     # Get microphone in a thread
     levels = []  # store levels of microphone
-    get_level_thread = Thread(target = get_microphone_level_alsa)
-    get_level_thread.daemon = True
-    get_level_thread.start()
+    get_level = MicrophoneLevel()
+    get_level.daemon = True
+    get_level.start()
 
     # Run App
-    AcousticBasicIllustration().run()
+    AcousticBasicIllustration(get_level).run()
