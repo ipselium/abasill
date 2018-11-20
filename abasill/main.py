@@ -3,24 +3,24 @@
 #
 # Copyright © 2016-2018 Cyril Desjouy <ipselium@free.fr>
 #
-# This file is part of {name}
+# This file is part of abasill
 #
-# {name} is free software: you can redistribute it and/or modify
+# abasill is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
-# {name} is distributed in the hope that it will be useful,
+# abasill is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with {name}. If not, see <http://www.gnu.org/licenses/>.
+# along with abasill. If not, see <http://www.gnu.org/licenses/>.
 #
 #
 # Creation Date : ven. 09 nov. 2018 15:22:09 CET
-# Last Modified : dim. 18 nov. 2018 00:53:11 CET
+# Last Modified : mar. 20 nov. 2018 11:40:52 CET
 """
 -----------
 DOCSTRING
@@ -41,12 +41,11 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 from kivy.uix.popup import Popup
 from kivy.uix.button import Button
-from kivy.garden.graph import LinePlot, MeshLinePlot
+from kivy.garden.graph import LinePlot, MeshLinePlot, BarPlot
 from kivy.clock import Clock
 import threading
 import time
 import alsaaudio, audioop
-import queue
 import numpy as np
 import re
 
@@ -100,7 +99,6 @@ class MicrophoneLevel(threading.Thread):
 
             if len(levels) > 100:
                 levels = []
-                print('running !')
 
 
     def pause(self):
@@ -108,6 +106,7 @@ class MicrophoneLevel(threading.Thread):
 
     def resume(self):
         self.available.set()    # Set flag to True
+
 
 class FloatInput(TextInput):
 
@@ -120,6 +119,32 @@ class FloatInput(TextInput):
         else:
             s = '.'.join([re.sub(pat, '', s) for s in substring.split('.', 1)])
         return super(FloatInput, self).insert_text(s, from_undo=from_undo)
+
+
+class BasePanel(Screen):
+
+    c = 340.
+    frequency = 340
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.__time = 0
+        self.dt = 1/100
+
+    @property
+    def time(self):
+        self.__time += self.dt
+        return self.__time
+
+    def start(self, *args):
+        self.ids.graph.add_plot(self.plot)
+        self.clock = Clock.schedule_interval(self.get_value, 1/20)
+
+    def stop(self):
+        Clock.unschedule(self.clock)
+
+    def switch_preset(self):
+        pass
 
 
 class MicrophonePanel(Screen):
@@ -157,8 +182,8 @@ class SeriesPanel(Screen):
         self.plot = LinePlot(color=[0., 0.29, 0.49, 1], line_width=3)
         self.t = np.linspace(0, 2, 1000)
         self.range = []
-        self.__even = range(2, self.N, 2)
-        self.__odd = range(3, self.N, 2)
+        self.__even = range(3, self.N, 2)
+        self.__odd = range(2, self.N, 2)
         self.__all = range(2, self.N)
 
     @property
@@ -175,7 +200,7 @@ class SeriesPanel(Screen):
 
     def start(self, *args):
         self.ids.graph.add_plot(self.plot)
-        self.clock = Clock.schedule_interval(self.get_value, 1/10)
+        self.clock = Clock.schedule_interval(self.get_value, 1/20)
 
     def stop(self):
         Clock.unschedule(self.clock)
@@ -231,65 +256,54 @@ class SeriesPanel(Screen):
             self.ids.parity.text = self.parity[0]
 
 
-class OlaPanel(Screen):
+class OlaPanel(BasePanel):
     """
     Ola Panel
     """
 
-    c = 340.
-    frequency = 340
-    A = NumericProperty(0)
-    B = NumericProperty(0)
+    T = NumericProperty(0.6)
+    tau = NumericProperty(0.06)
+    vsup = NumericProperty(0)
+    cwave = NumericProperty(0)
+    presets = ["La Ola", 'Fast Motion', 'Slow Motion']
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.plot = LinePlot(color=[0., 0.29, 0.49, 1], line_width=20)
-        self.__time = 0
-        self.dt = 2*np.pi/350000
-        self.space = np.linspace(0, 1, 1000)
-
-    @property
-    def time(self):
-        self.__time += self.dt
-        return self.__time
-
-    def start(self, *args):
-        self.ids.graph.add_plot(self.plot)
-        self.clock = Clock.schedule_interval(self.get_value, 1/100)
-
-    def stop(self):
-        Clock.unschedule(self.clock)
+        self.plot = BarPlot(color=[0., 0.29, 0.49, 1], bar_width=5)
+        self.Ns = 50
 
     def get_value(self, *args):
-        k = 2*np.pi*self.frequency/self.c
-        omega = 2*np.pi*self.frequency
-        s = (self.A*np.exp(1j*k*self.space)
-                + self.B*np.exp(-1j*k*self.space))*np.exp(1j*omega*self.time)
-        self.plot.points = [(self.space[i], j) for i, j in enumerate(s.real)]
+        self.cwave = 1/self.tau
+        self.vsup = 1/self.T
+        s = self.Ola(self.time, self.Ns, self.T, self.tau)
+        self.plot.points = [(i, j) for i, j in enumerate(s)]
 
     @staticmethod
-    def Ola(Nsupporters, d, T, tau):
+    def Ola(t, Ns, T, tau):
         """
-            Return
-                x : Les bonshommes
-                y : Leur déplacement
-                v : Leur vitesse
         """
-        Nt = 1000
-        t = np.linspace(0, 10, Nt)
-        x = np.arange(0, d*Nsupporters, d) + 1
+        y = np.zeros(Ns)
+        for i in range(Ns):
+            y[i] = np.sin(2*np.pi*(t-i*tau)/T) + 1
+        return y
 
-        y = np.zeros((Nsupporters, Nt))
-        v = np.empty_like(y)
-        for ii in range(Nsupporters):
-            y[ii, :] = np.sin(2*np.pi*(t-ii*tau)/T)
-            v[ii, :] = 2*np.pi*np.cos(2*np.pi*(t-ii*tau)/T)/T
-        return t, x, y, v
+    def switch_preset(self):
+        if self.ids.preset.text == self.presets[0]:
+            self.T = 0.6
+            self.tau = 0.06
+
+        elif self.ids.preset.text == self.presets[1]:
+            self.T = 0.5
+            self.tau = 0.01
+
+        elif self.ids.preset.text == self.presets[2]:
+            self.T = 1
+            self.tau = 0.01
 
 
-class SinePanel(Screen):
+class SinePanel(BasePanel):
     """
-    Sine Panel
+    Sine Panel : Basic Operations with sinus function
     """
 
     f1 = NumericProperty(10)
@@ -311,10 +325,7 @@ class SinePanel(Screen):
         self.ids.graph.add_plot(self.plot1)
         self.ids.graph.add_plot(self.plot2)
         self.ids.graph.add_plot(self.plot)
-        self.clock = Clock.schedule_interval(self.get_value, 1/10)
-
-    def stop(self):
-        Clock.unschedule(self.clock)
+        self.clock = Clock.schedule_interval(self.get_value, 1/50)
 
     def get_value(self, *args):
         t = np.linspace(0, 1, 1000)
@@ -350,14 +361,13 @@ class SinePanel(Screen):
             self.t2 = 0
             self.ids.operator.text = self.operators[0]
 
-class InterferencePanel(Screen):
+
+class InterferencePanel(BasePanel):
     """
     InterferencePanel Panel
     """
-    c = 340.
-    frequency = 340
-    A = NumericProperty(0)
-    B = NumericProperty(0)
+    A = NumericProperty(0.2)
+    B = NumericProperty(0.4)
     dispB = BooleanProperty(False)
     presets = ListProperty(['Interferences',
         'Progressive wave (+)', 'Progressive Wave (-)', 'Stationnary Wave'])
@@ -368,22 +378,14 @@ class InterferencePanel(Screen):
         self.plot2 = LinePlot(color=[1., 1., 0., 1], line_width=1)
         self.plot = LinePlot(color=[0., 0.29, 0.49, 1], line_width=3)
         self.__time = 0
-        self.dt = 2*np.pi/350000
+        self.dt = 1/50000
         self.space = np.linspace(0, 1, 1000)
-
-    @property
-    def time(self):
-        self.__time += self.dt
-        return self.__time
 
     def start(self, *args):
         self.ids.graph.add_plot(self.plot1)
         self.ids.graph.add_plot(self.plot2)
         self.ids.graph.add_plot(self.plot)
         self.clock = Clock.schedule_interval(self.get_value, 1/50)
-
-    def stop(self):
-        Clock.unschedule(self.clock)
 
     def get_value(self, *args):
         k = 2*np.pi*self.frequency/self.c
@@ -416,8 +418,64 @@ class InterferencePanel(Screen):
             self.B = 0.4
 
 
-class MediaPanel(Screen):
-    frequency = 340
+class SectionPanel(BasePanel):
+    """
+    SectionPanel : Section change Animations
+    """
+
+    Smin = 1
+    Smax = 100
+    S1 = NumericProperty(1)
+    S2 = NumericProperty(1)
+    Rp = NumericProperty(0)
+    Tp = NumericProperty(1)
+    presets = ListProperty(['Section Change', 'Large -> Small', 'Small -> Large'])
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.plot = LinePlot(color=[0., 0.29, 0.49, 1], line_width=2)
+        self.sep = LinePlot(color=[1, 0, 0, 1], line_width=4)
+        self.__time = 0
+        self.dt = 1/50000
+        self.omega = 2*np.pi*self.frequency
+        self.x1 = np.linspace(-2, 0, 1000)
+        self.x2 = np.linspace(0, 2, 1000)
+        self.xtot = np.concatenate([self.x1, self.x2])
+
+    def start(self, *args):
+        self.ids.graph.add_plot(self.plot)
+        self.ids.graph.add_plot(self.sep)
+        self.sep.points = [(0, j) for j in self.xtot]
+        self.clock = Clock.schedule_interval(self.get_value, 1/50)
+
+    def get_value(self, *args):
+        A = 1
+        self.Rp = (self.S1 - self.S2)/(self.S1 + self.S2)
+        self.Tp = 2*self.S1/(self.S1 + self.S2)
+        k = self.omega/self.c
+        p1 = A*(np.exp(-1j*k*self.x1)
+                + self.Rp*np.exp(1j*k*self.x1))*np.exp(1j*self.omega*self.time)
+        p2 = A*self.Tp*np.exp(-1j*k*self.x2)*np.exp(1j*self.omega*self.time)
+        ptot = np.concatenate([p1, p2])
+        self.plot.points = [(self.xtot[i], j) for i, j in enumerate(ptot.real)]
+
+    def switch_preset(self):
+        if self.ids.preset.text == self.presets[1]:
+            self.S1 = 30
+            self.S2 = 10
+        elif self.ids.preset.text == self.presets[2]:
+            self.S1 = 10
+            self.S2 = 30
+        else:
+            self.S1 = 1
+            self.S2 = 1
+
+
+class MediaPanel(BasePanel):
+    """
+    MediaPanel : Interface between two media
+    """
+
     rho_min = 0.7
     rho_max = 1500
     c_min = 290
@@ -435,25 +493,17 @@ class MediaPanel(Screen):
         self.plot = LinePlot(color=[0., 0.29, 0.49, 1], line_width=2)
         self.sep = LinePlot(color=[1, 0, 0, 1], line_width=4)
         self.__time = 0
-        self.dt = 2*np.pi/350000
+        self.dt = 1/50000
         self.omega = 2*np.pi*self.frequency
         self.x1 = np.linspace(-2, 0, 1000)
         self.x2 = np.linspace(0, 2, 1000)
         self.xtot = np.concatenate([self.x1, self.x2])
 
-    @property
-    def time(self):
-        self.__time += self.dt
-        return self.__time
-
     def start(self, *args):
         self.ids.graph.add_plot(self.plot)
         self.ids.graph.add_plot(self.sep)
         self.sep.points = [(0, j) for j in self.xtot]
-        self.clock = Clock.schedule_interval(self.get_value, 1/100)
-
-    def stop(self):
-        Clock.unschedule(self.clock)
+        self.clock = Clock.schedule_interval(self.get_value, 1/50)
 
     def get_value(self, *args):
         A = 1
@@ -536,8 +586,6 @@ class AcousticBasicIllustration(App):
         box.add_widget(Button(text = "NO, I WANT TO GO BACK", on_release=popup.dismiss))
         popup.open()
 
-#    def on_stop(self):
-#        self.get_level.resume()
 
 if __name__ == "__main__":
 

@@ -1,18 +1,81 @@
 #:import SlideTransition kivy.uix.screenmanager.SlideTransition
 #:import SwapTransition kivy.uix.screenmanager.SwapTransition
 #:import WipeTransition kivy.uix.screenmanager.WipeTransition
+#:import FadeTransition kivy.uix.screenmanager.FadeTransition
 #:import AnimLabel kivy.garden.animlabel.AnimLabel
 #:import Factory kivy.factory.Factory
 #:import np numpy
 
+# Configuration of the screens
+
 Screens:
     Home:
+        name: "home"
+        canvas.before:
+            Rectangle:
+                pos: self.pos
+                size: self.size
+                source: 'data/home.jpg'
     MicrophonePanel:
+        name: "micro"
+        on_enter:
+            app.get_level.resume()
+            self.start()
+        canvas.before:
+            Rectangle:
+                pos: self.pos
+                size: self.size
+                source: 'data/micro.jpg'
     SinePanel:
+        name: "sine"
+        on_enter: self.start()
+        canvas.before:
+            Rectangle:
+                pos: self.pos
+                size: self.size
+                source: 'data/home_r.jpg'
     MediaPanel:
+        name: "media"
+        on_enter: self.start()
+        canvas.before:
+            Rectangle:
+                pos: self.pos
+                size: self.size
+                source: 'data/home_r.jpg'
     InterferencePanel:
+        name: "interference"
+        on_enter: self.start()
+        canvas.before:
+            Rectangle:
+                pos: self.pos
+                size: self.size
+                source: 'data/home_r.jpg'
     SeriesPanel:
+        name: "series"
+        on_enter: self.start()
+        canvas.before:
+            Rectangle:
+                pos: self.pos
+                size: self.size
+                source: 'data/home_r.jpg'
     OlaPanel:
+        name: "ola"
+        on_enter: self.start()
+        canvas.before:
+            Rectangle:
+                pos: self.pos
+                size: self.size
+                source: 'data/home_r.jpg'
+    SectionPanel:
+        name: "section"
+        on_enter: self.start()
+        canvas.before:
+            Rectangle:
+                pos: self.pos
+                size: self.size
+                source: 'data/home_r.jpg'
+
+# Some custom classes
 
 <Slider@Slider>:
     orientation: "horizontal"
@@ -70,18 +133,9 @@ Screens:
     width: 60
     height: 30
 
+# Panels
 
 <MicrophonePanel>:
-    name: "micro"
-    on_enter:
-        app.get_level.resume()
-        root.start()
-    canvas.before:
-        Rectangle:
-            pos: self.pos
-            size: self.size
-            source: 'data/micro.jpg'
-
     BoxLayout:
         orientation: "vertical"
         Title:
@@ -104,20 +158,12 @@ Screens:
             on_press:
                 root.stop()
                 app.get_level.pause()
-                root.manager.transition = SwapTransition()
-                root.manager.transition.direction = 'up'
+                root.manager.transition = SlideTransition()
+                root.manager.transition.direction = 'down'
                 root.manager.transition.duration = app.transition_time
                 root.manager.current = 'home'
 
 <SinePanel>:
-    name: "sine"
-    on_enter: root.start()
-    canvas.before:
-        Rectangle:
-            pos: self.pos
-            size: self.size
-            source: 'data/home_r.jpg'
-
     BoxLayout:
         orientation: "vertical"
         Spinner:
@@ -240,14 +286,78 @@ Screens:
             text: "Home"
             on_press:
                 root.stop()
+                root.manager.transition = SwapTransition()
+                root.manager.transition.duration = app.transition_time
+                root.manager.current = 'home'
+
+<SectionPanel>:
+    BoxLayout:
+        orientation: "vertical"
+        Spinner:
+            id: preset
+            values: root.presets
+            text: root.presets[0]
+            on_text: root.switch_preset()
+        BoxLayout:
+            size_hint: [1, .45]
+            padding: [10, 10]
+            Graph:
+                id: graph
+                xlabel: "Space"
+                ylabel: "Amplitude"
+                x_ticks_major: 1
+                y_ticks_major: 1
+                ymin: -2
+                ymax: 2
+                xmin: -2
+                xmax: 2
+        GridLayout:
+            size_hint: [1., .15]
+            padding: [0, 0, 50, 0]
+            cols: 3
+            row_default_height: 40
+            row_force_default: True
+            Label:
+                text: "S[sub]1[/sub]"
+            Slider:
+                range: (root.Smin, root.Smax)
+                step: 0.1
+                value: root.S1
+                on_value: root.S1 = self.value
+            Label:
+                text: str(round(root.S1, 1))
+
+            Label:
+                text: "S[sub]2[/sub]"
+            Slider:
+                range: (root.Smin, root.Smax)
+                step: 0.1
+                value: root.S2
+                on_value: root.S2 = self.value
+            Label:
+                text: str(round(root.S2, 1))
+
+        BoxLayout:
+            size_hint: [1, .15]
+            Label:
+                text: 'R[sub]p[/sub] => ' + str(round(root.Rp, 2))
+                color: [1, 0, 0, 1]
+            Label:
+                text: 'T[sub]p[/sub] => ' + str(round(root.Tp, 2))
+                color: [1, 0, 0, 1]
+
+
+        Button:
+            size_hint: [1, .1]
+            text: "Home"
+            on_press:
+                root.stop()
                 root.manager.transition = SlideTransition()
-                root.manager.transition.direction = 'left'
+                root.manager.transition.direction = 'right'
                 root.manager.transition.duration = app.transition_time
                 root.manager.current = 'home'
 
 <MediaPanel>:
-    name: "media"
-    on_enter: root.start()
     BoxLayout:
         orientation: "vertical"
         Spinner:
@@ -317,7 +427,6 @@ Screens:
             FloatInput:
                 text: str(round(root.c2, 1))
                 on_text_validate: root.c2 = round(float(self.text)) if root.c_min <= float(self.text) <= root.c_max else root.c_min
-
         BoxLayout:
             size_hint: [1, .15]
             Label:
@@ -326,28 +435,17 @@ Screens:
             Label:
                 text: 'T[sub]p[/sub] => ' + str(round(root.Tp, 2))
                 color: [1, 0, 0, 1]
-
-
         Button:
             size_hint: [1, .1]
             text: "Home"
             on_press:
                 root.stop()
                 root.manager.transition = SlideTransition()
-                root.manager.transition.direction = 'down'
+                root.manager.transition.direction = 'left'
                 root.manager.transition.duration = app.transition_time
                 root.manager.current = 'home'
 
-
 <InterferencePanel>:
-    name: "interference"
-    on_enter: root.start()
-    canvas.before:
-        Rectangle:
-            pos: self.pos
-            size: self.size
-            source: 'data/home_r.jpg'
-
     BoxLayout:
         orientation: "vertical"
         Spinner:
@@ -411,18 +509,11 @@ Screens:
             on_press:
                 root.stop()
                 root.manager.transition = SlideTransition()
-                root.manager.transition.direction = 'right'
+                root.manager.transition.direction = 'up'
                 root.manager.transition.duration = app.transition_time
                 root.manager.current = 'home'
 
 <SeriesPanel>:
-    name: "series"
-    on_enter: root.start()
-    canvas.before:
-        Rectangle:
-            pos: self.pos
-            size: self.size
-            source: 'data/home_r.jpg'
     BoxLayout:
         orientation: "vertical"
         Spinner:
@@ -479,95 +570,97 @@ Screens:
                 TextInput:
                     multiline: False
                     text: root.f_i
+                    font_size: 20
+                    font_name: app.txt_font
                     size_hint_y: None
                     height: 40
                     on_text_validate:
                         root.f_i = self.text
                         root.check_f_i()
-
         Button:
             size_hint: [1, 0.1]
             text: "Home"
             on_press:
                 root.stop()
-                root.manager.transition = SlideTransition()
-                root.manager.transition.direction = 'up'
+                root.manager.transition = SwapTransition()
                 root.manager.transition.duration = app.transition_time
                 root.manager.current = 'home'
 
 <OlaPanel>:
-    name: "ola"
-    on_enter: root.start()
-    canvas.before:
-        Rectangle:
-            pos: self.pos
-            size: self.size
-            source: 'data/home_r.jpg'
     BoxLayout:
         orientation: "vertical"
-        Title:
-            size_hint: [1, .1]
-            text: "Ola"
+        Spinner:
+            id: preset
+            values: root.presets
+            text: root.presets[0]
+            on_text: root.switch_preset()
         BoxLayout:
-            size_hint: [1, .80]
+            size_hint: [1, .35]
             padding: [10, 10]
             Graph:
                 id: graph
                 xlabel: "Space"
                 ylabel: "Amplitude"
-                x_ticks_major: 0.25
                 y_ticks_major: 1
-                ymin: -2
+                ymin: 0
                 ymax: 2
                 xmin: 0
-                xmax: 1
-            BoxLayout:
-                orientation: "vertical"
-                Label:
-                    text: 'p(x, t) = Ae[sup]jwt[/sup] + Be[sup]-jwt[/sup]'
-                GridLayout:
-                    cols: 2
-                    padding: [50, 10]
-                    row_default_height: 40
-                    row_force_default: True
-                    Label:
-                        size_hint_x: None
-                        width: 50
-                        text: "A"
-                    Slider:
-                        range: (0, 1)
-                        step: 0.01
-                        value: root.A
-                        on_value: root.A = self.value
-                    Label:
-                        size_hint_x: None
-                        width: 50
-                        text: "B"
-                    Slider:
-                        range: (0, 1)
-                        step: 0.01
-                        value: root.B
-                        on_value: root.B = self.value
+                xmax: root.Ns
+        GridLayout:
+            cols: 3
+            padding: [50, 10]
+            size_hint: [1, .20]
+            row_default_height: 40
+            row_force_default: True
+            Label:
+                size_hint_x: None
+                width: 180
+                text: "Reaction Time"
+            Slider:
+                range: (0.01, 0.2)
+                step: 0.01
+                value: root.tau
+                on_value: root.tau = self.value
+            Label:
+                size_hint_x: None
+                width: 50
+                text: str(round(root.tau, 2))
+
+            Label:
+                size_hint_x: None
+                width: 180
+                text: "Motion Time"
+            Slider:
+                range: (0.5, 1)
+                step: 0.01
+                value: root.T
+                on_value: root.T = self.value
+            Label:
+                size_hint_x: None
+                width: 50
+                text: str(round(root.T, 2))
+        BoxLayout:
+            size_hint: [1, .25]
+            Label:
+                text: 'V[sub]supporters[/sub] => ' + str(round(root.vsup, 2)) + 'm/s'
+                color: [1, 0, 0, 1]
+            Label:
+                text: 'c[sub]Ola[/sub] => ' + str(round(root.cwave, 2)) + 'm/s'
+                color: [1, 0, 0, 1]
         Button:
             size_hint: [1, 0.1]
             text: "Home"
             on_press:
                 root.stop()
-                root.manager.transition = SlideTransition()
-                root.manager.transition.direction = 'up'
+                root.manager.transition = SwapTransition()
                 root.manager.transition.duration = app.transition_time
                 root.manager.current = 'home'
 
 <Home>:
-    name: "home"
     on_enter:
         tlabel.animate()
         blabel.animate()
-    canvas.before:
-        Rectangle:
-            pos: self.pos
-            size: self.size
-            source: 'data/home.jpg'
+
     BoxLayout:
         orientation: "vertical"
         AnimTitle:
@@ -575,66 +668,73 @@ Screens:
             target_text: 'Acoustic Basics'
             size_hint: [1, .1]
         GridLayout:
-            size_hint: [0.6, 0.8]
-            row_default_height: 80
+            size_hint: [0.65, 0.8]
+            row_default_height: 85
             row_force_default: True
             pos_hint: {'center_x':.5, 'center_y':.5}
             padding: [80, 80, 50, 50]
             cols: 3
             # 1st line
             Button:
-                text: "Ola"
-                on_press:
-                    root.manager.transition = SlideTransition()
-                    root.manager.transition.direction = 'down'
-                    root.manager.transition.duration = app.transition_time
-                    root.manager.current = 'ola'
-            Button:
-                text: "Series"
-                on_press:
-                    root.manager.transition = SlideTransition()
-                    root.manager.transition.direction = 'down'
-                    root.manager.transition.duration = app.transition_time
-                    root.manager.current = 'series'
-            Button:
-                text: "Micro"
+                text: "Sine"
                 on_press:
                     root.manager.transition = SwapTransition()
+                    root.manager.transition.duration = app.transition_time
+                    root.manager.current = 'sine'
+            Button:
+                text: "Interf."
+                on_press:
+                    root.manager.transition = SlideTransition()
                     root.manager.transition.direction = 'down'
                     root.manager.transition.duration = app.transition_time
-                    root.manager.current = 'micro'
+                    root.manager.current = 'interference'
+            Button:
+                text: "Ola"
+                on_press:
+                    root.manager.transition = SwapTransition()
+                    root.manager.transition.duration = app.transition_time
+                    root.manager.current = 'ola'
 
             # 2nd line
             Button:
-                text: "Sine"
+                text: "2 Media"
                 on_press:
                     root.manager.transition = SlideTransition()
                     root.manager.transition.direction = 'right'
                     root.manager.transition.duration = app.transition_time
-                    root.manager.current = 'sine'
+                    root.manager.current = 'media'
             Button:
                 text: "Quit"
                 color: [0., 0.29, 0.49, 1]
                 background_color: [0, 0, 0, 1]
                 on_release: app.close_menu()
             Button:
-                text: "Interf."
+                text: "Section"
                 on_press:
                     root.manager.transition = SlideTransition()
                     root.manager.transition.direction = 'left'
                     root.manager.transition.duration = app.transition_time
-                    root.manager.current = 'interference'
+                    root.manager.current = 'section'
 
             # 3rd line
-            Label:
             Button:
-                text: "Media"
+                text: "F-Series"
+                on_press:
+                    root.manager.transition = SwapTransition()
+                    root.manager.transition.duration = app.transition_time
+                    root.manager.current = 'series'
+            Button:
+                text: "Micro"
                 on_press:
                     root.manager.transition = SlideTransition()
                     root.manager.transition.direction = 'up'
                     root.manager.transition.duration = app.transition_time
-                    root.manager.current = 'media'
-            Label:
+                    root.manager.current = 'micro'
+            Button:
+                text: "Soon..."
+                on_press:
+                    root.manager.transition = SwapTransition()
+                    root.manager.transition.duration = app.transition_time
         AnimTitle:
             size_hint: [1, .1]
             id: blabel
