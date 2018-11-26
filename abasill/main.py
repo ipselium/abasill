@@ -20,7 +20,6 @@
 #
 #
 # Creation Date : ven. 09 nov. 2018 15:22:09 CET
-# Last Modified : mar. 20 nov. 2018 11:40:52 CET
 """
 -----------
 DOCSTRING
