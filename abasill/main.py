@@ -44,9 +44,14 @@ from kivy.garden.graph import LinePlot, MeshLinePlot, BarPlot
 from kivy.clock import Clock
 import threading
 import time
-import alsaaudio, audioop
 import numpy as np
 import re
+
+try:
+    import alsaaudio, audioop
+    MIC = 1
+except ModuleNotFoundError:
+    MIC = 0
 
 
 class MicrophoneLevel(threading.Thread):
@@ -67,37 +72,38 @@ class MicrophoneLevel(threading.Thread):
         # Open the device in nonblocking capture mode. The last argument could
         # just as well have been zero for blocking mode. Then we could have
         # left out the sleep call in the bottom of the loop
-        inp = alsaaudio.PCM(alsaaudio.PCM_CAPTURE,alsaaudio.PCM_NONBLOCK)
+        if MIC:
+            inp = alsaaudio.PCM(alsaaudio.PCM_CAPTURE,alsaaudio.PCM_NONBLOCK)
 
-        # Set attributes: Mono, 8000 Hz, 16 bit little endian samples
-        inp.setchannels(1)
-        inp.setrate(8000)
-        inp.setformat(alsaaudio.PCM_FORMAT_S16_LE)
+            # Set attributes: Mono, 8000 Hz, 16 bit little endian samples
+            inp.setchannels(1)
+            inp.setrate(8000)
+            inp.setformat(alsaaudio.PCM_FORMAT_S16_LE)
 
-        # The period size controls the internal number of frames per period.
-        # The significance of this parameter is documented in the ALSA api.
-        # For our purposes, it is suficcient to know that reads from the device
-        # will return this many frames. Each frame being 2 bytes long.
-        # This means that the reads below will return either 320 bytes of data
-        # or 0 bytes of data. The latter is possible because we are in nonblocking
-        # mode.
-    #    inp.setperiodsize(160)
-        inp.setperiodsize(320)
+            # The period size controls the internal number of frames per period.
+            # The significance of this parameter is documented in the ALSA api.
+            # For our purposes, it is suficcient to know that reads from the device
+            # will return this many frames. Each frame being 2 bytes long.
+            # This means that the reads below will return either 320 bytes of data
+            # or 0 bytes of data. The latter is possible because we are in nonblocking
+            # mode.
+        #    inp.setperiodsize(160)
+            inp.setperiodsize(320)
 
-        while True:
+            while True:
 
-            self.available.wait()   # Block until flag is True
+                self.available.wait()   # Block until flag is True
 
-            # Read data from device
-            l, data = inp.read()
-            if l:
-                # Return the maximum of the absolute value of all samples in a
-                # fragment.
-                mx = audioop.rms(data, 2)
-                levels.append(mx)
+                # Read data from device
+                l, data = inp.read()
+                if l:
+                    # Return the maximum of the absolute value of all samples in a
+                    # fragment.
+                    mx = audioop.rms(data, 2)
+                    levels.append(mx)
 
-            if len(levels) > 100:
-                levels = []
+                if len(levels) > 100:
+                    levels = []
 
 
     def pause(self):
