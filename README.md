@@ -2,6 +2,8 @@
 
 Basic Acoustic Illustration : Christman Gift for L2 SPI - 2018
 
+![Abasill](https://github.com/ipselium/abasill/docs/main.png)
+
 ## Dependencies
 
 * numpy
