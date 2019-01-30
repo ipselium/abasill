@@ -16,6 +16,8 @@ You also have to install the "graph" extension from kivy-garden. In a terminal :
 
 ```
 garden install graph
+garden install animlabel
+
 ```
 
 ## Run abasill with : python main.py
