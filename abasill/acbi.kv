@@ -117,14 +117,14 @@ Screens:
     letter_offset: .1
     font_name: app.title_font
     font_size: app.title_fsize
-    color: [0, 0, 0, 0]
+    color: [1, 1, 1, 1]
     on_touch_down: self.animate()
-    canvas.before:
-        Color:
-            rgba: app.title_bcolor
-        Rectangle:
-            pos: self.pos
-            size: self.size
+#    canvas.before:
+#        Color:
+#            rgba: app.title_bcolor
+#        Rectangle:
+#            pos: self.pos
+#            size: self.size
 
 <FloatInput@FloatInput>:
     multiline: False
